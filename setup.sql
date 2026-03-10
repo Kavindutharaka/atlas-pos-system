@@ -350,3 +350,39 @@ BEGIN
     ORDER  BY id;
 END
 GO
+
+-- sp_get_stock_log: Get stock addition history (most recent first)
+IF OBJECT_ID('dbo.sp_get_stock_log','P') IS NOT NULL DROP PROC dbo.sp_get_stock_log;
+GO
+CREATE PROC dbo.sp_get_stock_log
+AS
+BEGIN
+    SELECT sl.id, sl.code, p.description, sl.qty_added, sl.note, sl.created_at
+    FROM   dbo.stock_log sl
+    LEFT JOIN dbo.products p ON p.code = sl.code
+    ORDER  BY sl.created_at DESC;
+END
+GO
+
+-- sp_save_bill_item (updated): Insert line item + deduct stock if product is tracked (allows negative)
+IF OBJECT_ID('dbo.sp_save_bill_item','P') IS NOT NULL DROP PROC dbo.sp_save_bill_item;
+GO
+CREATE PROC dbo.sp_save_bill_item
+    @bill_id     INT,
+    @prod_code   NVARCHAR(20),
+    @description NVARCHAR(200),
+    @qty         INT,
+    @unit_price  DECIMAL(10,2),
+    @total_price DECIMAL(10,2)
+AS
+BEGIN
+    INSERT INTO dbo.bill_items (bill_id, prod_code, description, qty, unit_price, total_price)
+    VALUES (@bill_id, @prod_code, @description, @qty, @unit_price, @total_price);
+
+    -- Deduct from stock if this product is tracked; negative values allowed
+    IF EXISTS (SELECT 1 FROM dbo.stock WHERE code = @prod_code)
+        UPDATE dbo.stock
+        SET qty = qty - @qty, updated_at = DATEADD(MINUTE, 330, GETUTCDATE())
+        WHERE code = @prod_code;
+END
+GO

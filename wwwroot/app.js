@@ -21,6 +21,7 @@ app.controller('HomeCtrl', function ($scope, $http, $timeout, $q) {
   $scope.confirmData = { show: false };
   $scope.toast       = { show: false, message: '' };
   $scope.loading     = false;
+  $scope.printing    = false;
   $scope.billNo      = '';   // set by printBill() after save, used in bill template
 
   // ─── API helper ───────────────────────────────────────────────────────────
@@ -146,6 +147,9 @@ app.controller('HomeCtrl', function ($scope, $http, $timeout, $q) {
   $scope.closeBillModal = function () { $scope.showBillModal = false; };
 
   $scope.printBill = function () {
+    if ($scope.printing) return;
+    $scope.printing = true;
+
     var cartSnapshot = angular.copy($scope.cart);
     var total        = $scope.cartTotal();
 
@@ -182,16 +186,19 @@ app.controller('HomeCtrl', function ($scope, $http, $timeout, $q) {
             w.document.write(content);
             w.document.write('</body></html>');
             w.document.close();
+            w.onafterprint = function () { w.close(); };
             $timeout(function () { w.print(); }, 400);
 
             $scope.showToast('Bill ' + billNo + ' saved & sent to printer');
-            $scope.cart   = [];
-            $scope.billNo = '';
+            $scope.cart     = [];
+            $scope.billNo   = '';
+            $scope.printing = false;
             $scope.closeBillModal();
           }, 0);
         });
       })
       .catch(function () {
+        $scope.printing = false;
         $scope.showToast('Error saving bill — check connection');
       });
   };

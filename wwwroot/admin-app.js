@@ -31,9 +31,10 @@ app.controller('AdminCtrl', function ($scope, $http, $timeout, $q) {
   };
 
   // ─── Pages ───────────────────────────────────────────────────────────────
-  $scope.adminPage  = 1;   // 1 = Item Manage, 2 = Report
-  $scope.manageTab  = 1;   // 1=List, 2=AddEdit, 3=Barcode, 4=Inventory
-  $scope.reportTab  = 1;   // 1=Bills, 2=ItemsCount, 3=Stock
+  $scope.adminPage    = 1;   // 1 = Item Manage, 2 = Report
+  $scope.manageTab    = 1;   // 1=List, 2=AddEdit, 3=Barcode, 4=Inventory
+  $scope.inventoryTab = 1;   // 1=Add Stock, 2=Stock Additions Log, 3=Stock Levels
+  $scope.reportTab    = 1;   // 1=Bills, 2=ItemsCount, 3=Stock Levels, 4=Stock Additions
 
   // ─── API helper ───────────────────────────────────────────────────────────
   function sp(sysId, params) {
@@ -228,14 +229,17 @@ app.controller('AdminCtrl', function ($scope, $http, $timeout, $q) {
     return s && s.stock !== null && s.stock !== undefined ? s.stock : '—';
   };
 
-  // Autocomplete: filter items as user types
+  // Autocomplete: prioritise starts-with matches, max 6 results
   $scope.filterStockItems = function () {
     var q = ($scope.stockForm.searchText || '').toLowerCase().trim();
     if (!q || $scope.stockForm.foundItem) { $scope.stockForm.suggestions = []; return; }
-    $scope.stockForm.suggestions = $scope.items.filter(function (i) {
-      return i.code.toLowerCase().indexOf(q) !== -1 ||
-             i.description.toLowerCase().indexOf(q) !== -1;
-    }).slice(0, 8);
+    var starts = [], contains = [];
+    $scope.items.forEach(function (i) {
+      var c = i.code.toLowerCase(), d = i.description.toLowerCase();
+      if (c.indexOf(q) === 0 || d.indexOf(q) === 0) starts.push(i);
+      else if (c.indexOf(q) !== -1 || d.indexOf(q) !== -1) contains.push(i);
+    });
+    $scope.stockForm.suggestions = starts.concat(contains).slice(0, 6);
   };
 
   // Select from dropdown (ng-mousedown fires before ng-blur so dropdown stays open long enough)
@@ -272,13 +276,14 @@ app.controller('AdminCtrl', function ($scope, $http, $timeout, $q) {
     sp('sp_add_stock', { code: found.code, qty: qty, note: note })
       .then(function () {
         loadStock();
+        loadStockLog();
         $scope.stockForm = freshStockForm();
         $scope.showToast('Stock updated: ' + found.code);
       })
       .catch(function () { $scope.stockForm.error = 'Failed to update stock — check connection.'; });
   };
 
-  // Stock summary helpers for Stock Report tab
+  // Stock summary helpers
   $scope.countOutOfStock = function () {
     return $scope.stockList.filter(function (s) { return s.stock !== null && s.stock !== undefined && s.stock <= 0; }).length;
   };
@@ -289,6 +294,23 @@ app.controller('AdminCtrl', function ($scope, $http, $timeout, $q) {
     return $scope.stockList.filter(function (s) { return s.stock !== null && s.stock !== undefined; }).length;
   };
 
+  // ─── Stock Additions Log ─────────────────────────────────────────────────
+  $scope.stockLog        = [];
+  $scope.stockLogLoading = false;
+
+  function loadStockLog() {
+    $scope.stockLogLoading = true;
+    sp('sp_get_stock_log').then(function (res) {
+      $scope.stockLog = Array.isArray(res.data) ? res.data : [];
+    }).catch(function () {
+      $scope.showToast('Failed to load stock log');
+    }).finally(function () {
+      $scope.stockLogLoading = false;
+    });
+  }
+
+  $scope.reloadStockLog = function () { loadStockLog(); };
+
   // ─── Report: Bills ────────────────────────────────────────────────────────
   $scope.bills         = [];
   $scope.reportLoading = false;
@@ -298,26 +320,26 @@ app.controller('AdminCtrl', function ($scope, $http, $timeout, $q) {
     return d.getFullYear() + '-' + (mm < 10 ? '0' : '') + mm + '-' + (dd < 10 ? '0' : '') + dd;
   }
 
-  $scope.reportFrom = fmtDate(new Date());
-  $scope.reportTo   = fmtDate(new Date());
+  $scope.reportFrom = new Date();
+  $scope.reportTo   = new Date();
 
   $scope.setToday = function () {
-    $scope.reportFrom = fmtDate(new Date());
-    $scope.reportTo   = fmtDate(new Date());
+    $scope.reportFrom = new Date();
+    $scope.reportTo   = new Date();
     $scope.loadBills();
   };
 
   $scope.setThisMonth = function () {
     var now = new Date();
-    $scope.reportFrom = fmtDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    $scope.reportTo   = fmtDate(now);
+    $scope.reportFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+    $scope.reportTo   = now;
     $scope.loadBills();
   };
 
   $scope.loadBills = function () {
     $scope.reportLoading = true;
     $scope.bills = [];
-    sp('sp_get_bills', { from_dt: $scope.reportFrom, to_dt: $scope.reportTo })
+    sp('sp_get_bills', { from_dt: fmtDate($scope.reportFrom), to_dt: fmtDate($scope.reportTo) })
       .then(function (res) {
         $scope.bills = (Array.isArray(res.data) ? res.data : []).map(function (b) {
           b.expanded = false;
@@ -349,26 +371,26 @@ app.controller('AdminCtrl', function ($scope, $http, $timeout, $q) {
   // ─── Report: Items Count ─────────────────────────────────────────────────
   $scope.itemsCounts = [];
   $scope.icLoading   = false;
-  $scope.icFrom      = fmtDate(new Date());
-  $scope.icTo        = fmtDate(new Date());
+  $scope.icFrom      = new Date();
+  $scope.icTo        = new Date();
 
   $scope.setIcToday = function () {
-    $scope.icFrom = fmtDate(new Date());
-    $scope.icTo   = fmtDate(new Date());
+    $scope.icFrom = new Date();
+    $scope.icTo   = new Date();
     $scope.loadItemsCount();
   };
 
   $scope.setIcThisMonth = function () {
     var now = new Date();
-    $scope.icFrom = fmtDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    $scope.icTo   = fmtDate(now);
+    $scope.icFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+    $scope.icTo   = now;
     $scope.loadItemsCount();
   };
 
   $scope.loadItemsCount = function () {
     $scope.icLoading   = true;
     $scope.itemsCounts = [];
-    sp('items_count', { st: $scope.icFrom, en: $scope.icTo })
+    sp('items_count', { st: fmtDate($scope.icFrom), en: fmtDate($scope.icTo) })
       .then(function (res) {
         $scope.itemsCounts = Array.isArray(res.data) ? res.data : [];
       })
@@ -383,19 +405,30 @@ app.controller('AdminCtrl', function ($scope, $http, $timeout, $q) {
   // ─── Watchers: auto-load on tab switch ────────────────────────────────────
   $scope.$watch('reportTab', function (val) {
     if (!$scope.isLoggedIn) return;
-    if (val === 1 && $scope.bills.length === 0)        $scope.loadBills();
-    if (val === 3 && $scope.stockList.length === 0)    loadStock();
+    if (val === 1 && $scope.bills.length === 0)     $scope.loadBills();
+    if (val === 3 && $scope.stockList.length === 0) loadStock();
+    if (val === 4 && $scope.stockLog.length === 0)  loadStockLog();
   });
 
   $scope.$watch('manageTab', function (val) {
     if (!$scope.isLoggedIn) return;
-    if (val === 4 && $scope.stockList.length === 0)    loadStock();
+    if (val === 4 && $scope.stockList.length === 0) loadStock();
+  });
+
+  $scope.$watch('inventoryTab', function (val) {
+    if (!$scope.isLoggedIn) return;
+    if (val === 2 && $scope.stockLog.length === 0)  loadStockLog();
+    if (val === 3 && $scope.stockList.length === 0) loadStock();
   });
 
   // ─── Init ────────────────────────────────────────────────────────────────
   function loadAll() {
     loadItems();
     loadBarcodes();
+    loadStock();
+    loadStockLog();
+    $scope.loadBills();
+    $scope.loadItemsCount();
   }
 
   if ($scope.isLoggedIn) loadAll();

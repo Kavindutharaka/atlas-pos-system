@@ -268,7 +268,7 @@
 
       <div style="display:flex; gap:10px; margin-top:16px;">
         <button class="btn-secondary" style="flex:1;" ng-click="closeBillModal()">Cancel</button>
-        <button class="btn-primary" style="flex:2;" ng-click="printBill()">&#128438; Print</button>
+        <button class="btn-primary" style="flex:2;" ng-click="printBill()" ng-disabled="printing">{{printing ? 'Saving...' : '🖨 Print'}}</button>
       </div>
     </div>
   </div>
