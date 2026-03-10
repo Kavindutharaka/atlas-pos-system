@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlas POS</title>
+  <script src="./sup/angular.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="./report.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { width: 1920px; height: 100vh; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+    .nav-tab { padding: 10px 24px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 500; font-size: 14px; color: #6b7280; transition: all .2s; white-space: nowrap; }
+    .nav-tab:hover { color: #111827; background: #f9fafb; }
+    .nav-tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #fff; }
+    .item-card { cursor: pointer; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; transition: all .15s; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+    .item-card:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,.15); transform: translateY(-2px); }
+    .item-card img { width: 80px; height: 80px; object-fit: contain; }
+    .item-card .no-img { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; background: #f3f4f6; border-radius: 8px; color: #9ca3af; font-size: 11px; }
+    .cart-row { border-bottom: 1px solid #f3f4f6; padding: 6px 0; }
+    .qty-btn { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; cursor: pointer; border: 1px solid #d1d5db; background: #f9fafb; }
+    .qty-btn:hover { background: #e5e7eb; }
+    .qty-btn.plus { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .qty-btn.plus:hover { background: #1d4ed8; }
+    .btn-primary { background: #2563eb; color: #fff; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger { background: #dc2626; color: #fff; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-secondary { background: #f3f4f6; color: #374151; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; border: 1px solid #d1d5db; transition: all .15s; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .input-field { border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 14px; font-size: 14px; width: 100%; outline: none; transition: border .15s; background: #fff; }
+    .input-field:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
+    .modal-box { background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 480px; max-height: 90vh; overflow-y: auto; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-wb { background: #dbeafe; color: #1d4ed8; }
+    .badge-lb { background: #d1fae5; color: #065f46; }
+    .badge-other { background: #f3f4f6; color: #374151; }
+    .print-area { display: none; }
+    @media print {
+      body > *:not(.print-area) { display: none !important; }
+      .print-area { display: block !important; }
+    }
+    /* Force flex on the POS page (ng-show only toggles ng-hide, not display:flex) */
+    .pos-page { display: flex !important; height: calc(100vh - 52px); overflow: hidden; }
+    .pos-left  { flex: 1; display: flex; flex-direction: column; padding: 14px; min-width: 0; overflow: hidden; height: calc(100vh - 52px); }
+    .pos-right { width: 380px; display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - 52px); }
+    .pos-search { display: flex; gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
+    .items-grid-wrap { overflow-y: auto; flex: 1; min-height: 0; }
+    .cart-wrap { overflow-y: auto; flex: 1; min-height: 0; }
+    /* Sub tabs */
+    .sub-tab { padding: 8px 18px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 500; color: #6b7280; }
+    .sub-tab:hover { color: #374151; }
+    .sub-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    /* Manage table */
+    .manage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .manage-table th { background: #f9fafb; padding: 10px 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; }
+    .manage-table td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+    .manage-table tr:hover td { background: #f9fafb; }
+    .no-results { text-align: center; padding: 60px; color: #9ca3af; }
+    .scrollbar-hide::-webkit-scrollbar { width: 4px; }
+    .scrollbar-hide::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  </style>
+</head>
+<body ng-app="APSApp" ng-cloak ng-controller="HomeCtrl">
+
+<!-- TOP NAV -->
+<div style="background:#fff; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; height:52px; padding:0 16px;">
+  <div style="font-weight:700; font-size:16px; color:#2563eb; margin-right:32px; letter-spacing:-.5px;">POS</div>
+  <!-- <div class="nav-tab" ng-class="{active: page==1}" ng-click="page=1">
+    <span>&#128722;</span> POS
+  </div>
+  <div class="nav-tab" ng-class="{active: page==2}" ng-click="page=2">
+    <span>&#128230;</span> Item Manage
+  </div> -->
+  <div class="nav-tab" ng-class="{active: page==3}">
+    <span>&#128202;</span> Report
+  </div>
+  <div style="margin-left:auto; font-size:12px; color:#9ca3af;">{{today}}</div>
+</div>
+
+<!-- ===================== REPORT PAGE ===================== -->
+<div ng-show="page==1" style="height:calc(100vh - 52px); display:flex; flex-direction:column; overflow:hidden;">
+
+  <!-- Filter bar -->
+  <div style="background:#fff; border-bottom:1px solid #e5e7eb; padding:12px 20px; display:flex; align-items:center; gap:12px; flex-shrink:0;">
+    <span style="font-weight:700; font-size:14px; color:#374151;">Date Range:</span>
+    <input type="date" ng-model="reportFrom" class="input-field" style="width:160px;"/>
+    <span style="color:#6b7280; font-size:14px;">to</span>
+    <input type="date" ng-model="reportTo" class="input-field" style="width:160px;"/>
+    <button class="btn-primary" ng-click="loadBills()" style="padding:8px 18px;">&#128269; Search</button>
+    <button class="btn-secondary" ng-click="setToday()" style="padding:8px 14px;">Today</button>
+    <!-- <button class="btn-secondary" ng-click="setThisMonth()" style="padding:8px 14px;">This Month</button> -->
+    <!-- Summary chips -->
+    <div style="margin-left:auto; display:flex; gap:16px; align-items:center;" ng-show="bills.length > 0">
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:#6b7280;">Bills</div>
+        <div style="font-size:18px; font-weight:700; color:#2563eb;">{{bills.length}}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:#6b7280;">Items Sold</div>
+        <div style="font-size:18px; font-weight:700; color:#2563eb;">{{reportTotalItems()}}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px; color:#6b7280;">Revenue</div>
+        <div style="font-size:18px; font-weight:700; color:#16a34a;">Rs.{{reportTotalRevenue() | number:2}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div style="flex:1; overflow-y:auto; padding:16px;" class="scrollbar-hide">
+
+    <!-- Empty state -->
+    <div ng-if="bills.length == 0 && !reportLoading" class="no-results">
+      <div style="font-size:48px;">&#128202;</div>
+      <div style="margin-top:8px;">No bills found for selected date range</div>
+    </div>
+    <div ng-if="reportLoading" class="no-results">
+      <div style="font-size:14px; color:#6b7280;">Loading...</div>
+    </div>
+
+    <!-- Bills table -->
+    <table class="manage-table" ng-if="bills.length > 0">
+      <thead>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th>Bill No</th>
+          <th>Date &amp; Time</th>
+          <th style="text-align:center;">Items</th>
+          <th style="text-align:right;">Total (Rs.)</th>
+          <th style="width:80px; text-align:center;">Detail</th>
+        </tr>
+      </thead>
+      <tbody ng-repeat="bill in bills">
+        <!-- Bill summary row -->
+        <tr style="cursor:pointer;" ng-click="toggleBill(bill)" ng-class="{'bg-blue-50': bill.expanded}" ng-style="bill.expanded ? {'background':'#eff6ff'} : {}">
+          <td style="color:#9ca3af;">{{$index+1}}</td>
+          <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 7px; border-radius:4px; font-weight:600;">{{bill.bill_no}}</span></td>
+          <td style="font-size:13px;">{{bill.created_at | date:'dd MMM yyyy, HH:mm'}}</td>
+          <td style="text-align:center;">
+            <span style="background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600;">{{bill.item_count}}</span>
+          </td>
+          <td style="text-align:right; font-weight:700; color:#2563eb; font-size:14px;">{{bill.total | number:2}}</td>
+          <td style="text-align:center;">
+            <span style="font-size:18px; cursor:pointer; color:#2563eb;" ng-bind="bill.expanded ? '&#9650;' : '&#9660;'"></span>
+          </td>
+        </tr>
+        <!-- Expanded detail row -->
+        <tr ng-if="bill.expanded">
+          <td colspan="6" style="padding:0; background:#f8faff;">
+            <div style="padding:12px 24px 16px;">
+              <!-- Loading spinner for items -->
+              <div ng-if="!bill.items" style="padding:12px; color:#6b7280; font-size:13px;">Loading items...</div>
+              <!-- Items sub-table -->
+              <table ng-if="bill.items" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                <thead>
+                  <tr style="background:#f1f5fd;">
+                    <th style="padding:8px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Code</th>
+                    <th style="padding:8px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Description</th>
+                    <th style="padding:8px 12px; text-align:center; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Qty</th>
+                    <th style="padding:8px 12px; text-align:right; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Unit Price</th>
+                    <th style="padding:8px 12px; text-align:right; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="itm in bill.items" ng-style="{'background': $even ? '#fff' : '#fafbff'}">
+                    <td style="padding:7px 12px; font-family:monospace; font-size:11px; color:#6b7280;">{{itm.prod_code}}</td>
+                    <td style="padding:7px 12px; color:#111827;">{{itm.description}}</td>
+                    <td style="padding:7px 12px; text-align:center; font-weight:600;">{{itm.qty}}</td>
+                    <td style="padding:7px 12px; text-align:right; color:#6b7280;">{{itm.unit_price | number:2}}</td>
+                    <td style="padding:7px 12px; text-align:right; font-weight:700; color:#2563eb;">{{itm.total_price | number:2}}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style="background:#f1f5fd; border-top:2px solid #e5e7eb;">
+                    <td colspan="4" style="padding:8px 12px; font-weight:700; color:#374151; text-align:right;">Bill Total</td>
+                    <td style="padding:8px 12px; font-weight:700; color:#2563eb; text-align:right;">Rs.{{bill.total | number:2}}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== CONFIRM DIALOG ===================== -->
+<div class="modal-overlay" ng-show="confirmData.show" style="z-index:200;">
+  <div style="background:#fff; border-radius:12px; padding:24px; width:360px; box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:8px;">{{confirmData.title}}</div>
+    <div style="font-size:14px; color:#6b7280; margin-bottom:20px;">{{confirmData.message}}</div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn-secondary" ng-click="confirmData.show=false">Cancel</button>
+      <button class="btn-danger" ng-click="confirmData.onConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div ng-show="toast.show" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:12px 24px; border-radius:8px; font-size:14px; z-index:300; box-shadow:0 8px 24px rgba(0,0,0,.3);">
+  {{toast.message}}
+</div>
+
+<!-- PRINT AREA -->
+<div class="print-area" id="printArea"></div>
+
+</body>
+</html>
