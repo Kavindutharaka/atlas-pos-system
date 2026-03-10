@@ -226,8 +226,100 @@ GO
 PRINT 'Setup complete.';
 
 -- ============================================================
+-- INVENTORY / STOCK TABLES (add-on — safe to run separately)
+-- ============================================================
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name='stock' AND schema_id=SCHEMA_ID('dbo'))
+CREATE TABLE dbo.stock (
+    code       NVARCHAR(20)  NOT NULL PRIMARY KEY,
+    qty        INT           NOT NULL DEFAULT 0,
+    updated_at DATETIME      NOT NULL
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name='stock_log' AND schema_id=SCHEMA_ID('dbo'))
+CREATE TABLE dbo.stock_log (
+    id         INT           NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    code       NVARCHAR(20)  NOT NULL,
+    qty_added  INT           NOT NULL,
+    note       NVARCHAR(500) NULL,
+    created_at DATETIME      NOT NULL
+);
+GO
+
+-- ============================================================
 -- REPORT SPs (add-on — safe to run separately)
 -- ============================================================
+
+-- Updated sp_prods: now includes stock qty (NULL = not tracked)
+IF OBJECT_ID('dbo.sp_prods','P') IS NOT NULL DROP PROC dbo.sp_prods;
+GO
+CREATE PROC dbo.sp_prods AS
+BEGIN
+    SELECT p.code, p.description, p.category, p.mrp, p.price, s.qty AS stock
+    FROM   dbo.products p
+    LEFT JOIN dbo.stock s ON s.code = p.code
+    WHERE  p.is_active = 1
+    ORDER  BY p.category, p.description;
+END
+GO
+
+-- sp_get_stock: All products with current stock levels
+IF OBJECT_ID('dbo.sp_get_stock','P') IS NOT NULL DROP PROC dbo.sp_get_stock;
+GO
+CREATE PROC dbo.sp_get_stock AS
+BEGIN
+    SELECT p.code, p.description, p.category, s.qty AS stock, s.updated_at
+    FROM   dbo.products p
+    LEFT JOIN dbo.stock s ON s.code = p.code
+    WHERE  p.is_active = 1
+    ORDER  BY p.category, p.description;
+END
+GO
+
+-- sp_add_stock: Add stock quantity with optional note
+IF OBJECT_ID('dbo.sp_add_stock','P') IS NOT NULL DROP PROC dbo.sp_add_stock;
+GO
+CREATE PROC dbo.sp_add_stock
+    @code NVARCHAR(20),
+    @qty  INT,
+    @note NVARCHAR(500) = NULL
+AS
+BEGIN
+    DECLARE @now DATETIME = DATEADD(MINUTE, 330, GETUTCDATE());
+    INSERT INTO dbo.stock_log (code, qty_added, note, created_at)
+    VALUES (@code, @qty, @note, @now);
+    IF EXISTS (SELECT 1 FROM dbo.stock WHERE code = @code)
+        UPDATE dbo.stock SET qty = qty + @qty, updated_at = @now WHERE code = @code;
+    ELSE
+        INSERT INTO dbo.stock (code, qty, updated_at) VALUES (@code, @qty, @now);
+END
+GO
+
+-- items_by_bill: View joining bill_items + bills (for date-range item count queries)
+IF OBJECT_ID('dbo.items_by_bill','V') IS NOT NULL DROP VIEW dbo.items_by_bill;
+GO
+CREATE VIEW dbo.items_by_bill AS
+SELECT bi.prod_code, bi.description, bi.qty, CAST(b.created_at AS DATE) AS dt
+FROM   dbo.bill_items bi
+JOIN   dbo.bills b ON b.id = bi.bill_id;
+GO
+
+-- items_count: Sum qty per product for a date range
+IF OBJECT_ID('dbo.items_count','P') IS NOT NULL DROP PROC dbo.items_count;
+GO
+CREATE PROC dbo.items_count
+    @st DATE,
+    @en DATE
+AS
+BEGIN
+    SELECT prod_code, description, SUM(qty) AS q
+    FROM   dbo.items_by_bill
+    WHERE  dt BETWEEN @st AND @en
+    GROUP  BY prod_code, description
+    ORDER  BY q DESC;
+END
+GO
 
 -- sp_get_bills: Get bills by date range (dates stored as SL time)
 IF OBJECT_ID('dbo.sp_get_bills','P') IS NOT NULL DROP PROC dbo.sp_get_bills;

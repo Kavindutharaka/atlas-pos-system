@@ -3,60 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Atlas POS</title>
+  <title>POS</title>
   <script src="./sup/angular.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="./app.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { width: 1920px; height: 100vh; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
-    .nav-tab { padding: 10px 24px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 500; font-size: 14px; color: #6b7280; transition: all .2s; white-space: nowrap; }
-    .nav-tab:hover { color: #111827; background: #f9fafb; }
-    .nav-tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #fff; }
-    .item-card { cursor: pointer; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; transition: all .15s; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+    .item-card { cursor: pointer; border: 2px solid #e5e7eb; border-radius: 10px; background: #fff; transition: all .15s; display: flex; flex-direction: column; align-items: center; padding: 12px; }
     .item-card:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,.15); transform: translateY(-2px); }
-    .item-card img { width: 80px; height: 80px; object-fit: contain; }
-    .item-card .no-img { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; background: #f3f4f6; border-radius: 8px; color: #9ca3af; font-size: 11px; }
+    .item-card img { width: 90px; height: 90px; object-fit: contain; }
+    .item-card .no-img { width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; background: #f3f4f6; border-radius: 8px; color: #9ca3af; font-size: 11px; }
+    .item-low-stock { border-color: #f59e0b !important; }
+    .item-out-stock { border-color: #dc2626 !important; background: #fff8f8 !important; }
     .cart-row { border-bottom: 1px solid #f3f4f6; padding: 6px 0; }
-    .qty-btn { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; cursor: pointer; border: 1px solid #d1d5db; background: #f9fafb; }
+    .qty-btn { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; cursor: pointer; border: 1px solid #d1d5db; background: #f9fafb; }
     .qty-btn:hover { background: #e5e7eb; }
     .qty-btn.plus { background: #2563eb; color: #fff; border-color: #2563eb; }
     .qty-btn.plus:hover { background: #1d4ed8; }
     .btn-primary { background: #2563eb; color: #fff; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
     .btn-primary:hover { background: #1d4ed8; }
-    .btn-danger { background: #dc2626; color: #fff; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
-    .btn-danger:hover { background: #b91c1c; }
+    .btn-danger { background: #dc2626; color: #fff; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; border: none; }
     .btn-secondary { background: #f3f4f6; color: #374151; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; border: 1px solid #d1d5db; transition: all .15s; }
     .btn-secondary:hover { background: #e5e7eb; }
     .input-field { border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 14px; font-size: 14px; width: 100%; outline: none; transition: border .15s; background: #fff; }
     .input-field:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
     .modal-box { background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 480px; max-height: 90vh; overflow-y: auto; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
     .badge-wb { background: #dbeafe; color: #1d4ed8; }
     .badge-lb { background: #d1fae5; color: #065f46; }
     .badge-other { background: #f3f4f6; color: #374151; }
-    .print-area { display: none; }
-    @media print {
-      body > *:not(.print-area) { display: none !important; }
-      .print-area { display: block !important; }
-    }
-    /* Force flex on the POS page (ng-show only toggles ng-hide, not display:flex) */
-    .pos-page { display: flex !important; height: calc(100vh - 52px); overflow: hidden; }
-    .pos-left  { flex: 1; display: flex; flex-direction: column; padding: 14px; min-width: 0; overflow: hidden; height: calc(100vh - 52px); }
-    .pos-right { width: 380px; display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - 52px); }
+    .pos-page { display: flex; height: calc(100vh - 52px); overflow: hidden; }
+    .pos-left  { flex: 1; display: flex; flex-direction: column; padding: 14px; min-width: 0; overflow: hidden; }
+    .pos-right { width: 400px; display: flex; flex-direction: column; overflow: hidden; }
     .pos-search { display: flex; gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
     .items-grid-wrap { overflow-y: auto; flex: 1; min-height: 0; }
     .cart-wrap { overflow-y: auto; flex: 1; min-height: 0; }
-    /* Sub tabs */
-    .sub-tab { padding: 8px 18px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 500; color: #6b7280; }
-    .sub-tab:hover { color: #374151; }
-    .sub-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
-    /* Manage table */
-    .manage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .manage-table th { background: #f9fafb; padding: 10px 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; }
-    .manage-table td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; }
-    .manage-table tr:hover td { background: #f9fafb; }
     .no-results { text-align: center; padding: 60px; color: #9ca3af; }
     .scrollbar-hide::-webkit-scrollbar { width: 4px; }
     .scrollbar-hide::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
@@ -66,21 +49,16 @@
 
 <!-- TOP NAV -->
 <div style="background:#fff; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; height:52px; padding:0 16px;">
-  <div style="font-weight:700; font-size:16px; color:#2563eb; margin-right:32px; letter-spacing:-.5px;">POS</div>
-  <div class="nav-tab" ng-class="{active: page==1}" ng-click="page=1">
-    <span>&#128722;</span> POS
+  <div style="font-weight:800; font-size:17px; color:#2563eb; margin-right:24px; letter-spacing:-.5px;">POS</div>
+  <div style="font-size:14px; font-weight:500; color:#374151;">&#128722; Point of Sale</div>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:16px;">
+    <span style="font-size:12px; color:#9ca3af;">{{today}}</span>
+    <a href="/admin.html" target="_blank" style="background:#f3f4f6; color:#374151; padding:7px 16px; border-radius:6px; font-size:13px; font-weight:600; text-decoration:none; border:1px solid #d1d5db;">&#9881; Admin</a>
   </div>
-  <div class="nav-tab" ng-class="{active: page==2}" ng-click="page=2">
-    <span>&#128230;</span> Item Manage
-  </div>
-  <div class="nav-tab" ng-class="{active: page==3}" ng-click="page=3">
-    <span>&#128202;</span> Report
-  </div>
-  <div style="margin-left:auto; font-size:12px; color:#9ca3af;">{{today}}</div>
 </div>
 
 <!-- ===================== POS PAGE ===================== -->
-<div ng-show="page==1" class="pos-page">
+<div class="pos-page">
 
   <!-- LEFT: Items Panel -->
   <div class="pos-left">
@@ -88,13 +66,12 @@
     <!-- Search bar -->
     <div class="pos-search">
       <div style="position:relative; flex:1;">
-        <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:16px;">&#128269;</span>
-        <input class="input-field" style="padding-left:34px;" type="text" placeholder="Scan barcode or type to search..." ng-model="searchText" ng-keyup="onSearchKey($event)" id="barcodeInput" autofocus/>
+        <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:18px;">&#128269;</span>
+        <input class="input-field" style="padding-left:36px; font-size:15px;" type="text" placeholder="Scan barcode or type to search..." ng-model="searchText" ng-keyup="onSearchKey($event)" id="barcodeInput" autofocus/>
       </div>
       <button class="btn-primary" ng-click="searchItems()">Search</button>
       <button class="btn-secondary" ng-click="clearSearch()" ng-show="searchText">Clear</button>
-      <!-- Category filter -->
-      <select class="input-field" style="width:140px;" ng-model="catFilter" ng-change="filterItems()">
+      <select class="input-field" style="width:150px;" ng-model="catFilter" ng-change="filterItems()">
         <option value="">All Categories</option>
         <option value="WB">Water Bottles</option>
         <option value="LB">Lunch Boxes</option>
@@ -105,20 +82,28 @@
     <div class="items-grid-wrap scrollbar-hide">
       <div ng-if="filteredItems.length == 0" class="no-results">
         <div style="font-size:40px;">&#128683;</div>
-        <div style="margin-top:8px;">No items found</div>
+        <div style="margin-top:8px; font-size:15px;">No items found</div>
       </div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:10px;" ng-if="filteredItems.length > 0">
-        <div class="item-card" ng-repeat="item in filteredItems" ng-click="openItemModal(item)">
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:10px;" ng-if="filteredItems.length > 0">
+        <div class="item-card"
+             ng-class="{'item-out-stock': item.stock !== null && item.stock !== undefined && item.stock <= 0,
+                        'item-low-stock': item.stock !== null && item.stock !== undefined && item.stock > 0 && item.stock <= 10}"
+             ng-repeat="item in filteredItems"
+             ng-click="openItemModal(item)">
           <img ng-src="./Items_img/{{item.code}}.png" alt="{{item.description}}"
-               ng-on-error="imgError($event)"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"/>
           <div class="no-img" style="display:none;">No Image</div>
           <div style="width:100%; margin-top:8px;">
-            <div style="font-size:10px; color:#6b7280; font-family:monospace;">{{item.code}}</div>
-            <div style="font-size:11px; font-weight:600; color:#111827; line-height:1.3; margin-top:2px;">{{item.description | limitTo:40}}</div>
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+            <div style="font-size:11px; color:#6b7280; font-family:monospace;">{{item.code}}</div>
+            <div style="font-size:14px; font-weight:700; color:#111827; line-height:1.3; margin-top:3px;">{{item.description | limitTo:36}}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px;">
               <span class="badge" ng-class="{'badge-wb': item.category=='WB', 'badge-lb': item.category=='LB', 'badge-other': item.category!='WB' && item.category!='LB'}">{{item.category}}</span>
-              <span style="font-size:12px; font-weight:700; color:#2563eb;">Rs.{{item.price}}</span>
+              <span style="font-size:16px; font-weight:700; color:#2563eb;">Rs.{{item.price}}</span>
+            </div>
+            <!-- Stock indicator -->
+            <div ng-if="item.stock !== null && item.stock !== undefined" style="margin-top:4px;">
+              <span ng-if="item.stock <= 0" style="font-size:10px; font-weight:700; color:#dc2626; background:#fee2e2; padding:1px 6px; border-radius:3px;">OUT OF STOCK</span>
+              <span ng-if="item.stock > 0 && item.stock <= 10" style="font-size:10px; font-weight:700; color:#b45309; background:#fef3c7; padding:1px 6px; border-radius:3px;">Low: {{item.stock}}</span>
             </div>
           </div>
         </div>
@@ -130,31 +115,31 @@
   <div class="pos-right" style="background:#fff; border-left:1px solid #e5e7eb;">
     <!-- Cart header -->
     <div style="padding:14px 16px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between;">
-      <span style="font-weight:700; font-size:15px; color:#111827;">Cart</span>
-      <span style="font-size:12px; color:#6b7280;">{{cart.length}} item(s)</span>
+      <span style="font-weight:700; font-size:16px; color:#111827;">Cart</span>
+      <span style="font-size:13px; color:#6b7280;">{{cart.length}} item(s)</span>
     </div>
 
     <!-- Cart items -->
-    <div class="cart-wrap scrollbar-hide" style="flex:1; padding:0 16px; overflow-y:auto;">
+    <div class="cart-wrap scrollbar-hide" style="padding:0 16px;">
       <div ng-if="cart.length == 0" style="text-align:center; padding:40px 0; color:#9ca3af;">
-        <div style="font-size:36px;">&#128722;</div>
-        <div style="margin-top:8px; font-size:13px;">Cart is empty</div>
+        <div style="font-size:40px;">&#128722;</div>
+        <div style="margin-top:8px; font-size:14px;">Cart is empty</div>
       </div>
       <div class="cart-row" ng-repeat="row in cart">
         <div style="display:flex; align-items:flex-start; gap:8px;">
-          <img ng-src="./Items_img/{{row.item.code}}.png" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#f3f4f6;flex-shrink:0;"
+          <img ng-src="./Items_img/{{row.item.code}}.png" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:#f3f4f6;flex-shrink:0;"
                onerror="this.style.opacity='.3'"/>
           <div style="flex:1; min-width:0;">
-            <div style="font-size:12px; font-weight:600; color:#111827; line-height:1.3;">{{row.item.description | limitTo:35}}</div>
-            <div style="font-size:10px; color:#6b7280; font-family:monospace;">{{row.item.code}}</div>
-            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+            <div style="font-size:13px; font-weight:600; color:#111827; line-height:1.3;">{{row.item.description | limitTo:35}}</div>
+            <div style="font-size:11px; color:#6b7280; font-family:monospace;">{{row.item.code}}</div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
               <span class="qty-btn" ng-click="changeQty(row, -1)">&#8722;</span>
-              <span style="font-size:13px; font-weight:700; width:24px; text-align:center;">{{row.qty}}</span>
+              <span style="font-size:14px; font-weight:700; width:26px; text-align:center;">{{row.qty}}</span>
               <span class="qty-btn plus" ng-click="changeQty(row, 1)">+</span>
-              <span style="margin-left:auto; font-size:13px; font-weight:700; color:#2563eb;">Rs.{{(row.item.price * row.qty) | number:2}}</span>
+              <span style="margin-left:auto; font-size:14px; font-weight:700; color:#2563eb;">Rs.{{(row.item.price * row.qty) | number:2}}</span>
             </div>
           </div>
-          <span style="cursor:pointer; color:#dc2626; font-size:16px; padding:2px;" ng-click="removeFromCart(row)" title="Remove">&#10005;</span>
+          <span style="cursor:pointer; color:#dc2626; font-size:18px; padding:2px;" ng-click="removeFromCart(row)" title="Remove">&#10005;</span>
         </div>
       </div>
     </div>
@@ -165,7 +150,7 @@
         <span>Subtotal</span>
         <span>Rs.{{cartTotal() | number:2}}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:700; color:#111827; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:700; color:#111827; margin-bottom:14px;">
         <span>Total</span>
         <span style="color:#2563eb;">Rs.{{cartTotal() | number:2}}</span>
       </div>
@@ -184,10 +169,10 @@
   <div class="modal-box" ng-click="$event.stopPropagation()">
     <div style="padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between;">
       <div>
-        <div style="font-weight:700; font-size:16px; color:#111827;">{{selectedItem.description}}</div>
+        <div style="font-weight:700; font-size:17px; color:#111827;">{{selectedItem.description}}</div>
         <div style="font-size:12px; color:#6b7280; font-family:monospace; margin-top:2px;">{{selectedItem.code}}</div>
       </div>
-      <button style="background:none;border:none;cursor:pointer;color:#6b7280;font-size:20px;" ng-click="closeItemModal()">&#10005;</button>
+      <button style="background:none;border:none;cursor:pointer;color:#6b7280;font-size:22px;" ng-click="closeItemModal()">&#10005;</button>
     </div>
     <div style="padding:20px; display:flex; gap:20px; align-items:flex-start;">
       <div style="flex-shrink:0;">
@@ -195,25 +180,25 @@
              onerror="this.src=''; this.alt='No Image'"/>
       </div>
       <div style="flex:1;">
-        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
           <span class="badge" ng-class="{'badge-wb': selectedItem.category=='WB', 'badge-lb': selectedItem.category=='LB', 'badge-other': true}">{{selectedItem.category}}</span>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:15px;">
           <span style="color:#6b7280;">MRP</span>
           <span style="text-decoration:line-through; color:#9ca3af;">Rs.{{selectedItem.mrp}}</span>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:16px; font-size:18px; font-weight:700;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:16px; font-size:22px; font-weight:700;">
           <span style="color:#374151;">Price</span>
           <span style="color:#2563eb;">Rs.{{selectedItem.price}}</span>
         </div>
-        <!-- Qty selector in modal -->
+        <!-- Qty selector -->
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-          <span style="font-size:13px; color:#374151; font-weight:500;">Quantity:</span>
+          <span style="font-size:14px; color:#374151; font-weight:500;">Quantity:</span>
           <span class="qty-btn" ng-click="modalQty = modalQty > 1 ? modalQty-1 : 1">&#8722;</span>
-          <input type="number" min="1" ng-model="modalQty" style="width:60px; text-align:center; border:1px solid #d1d5db; border-radius:6px; padding:6px; font-size:14px; font-weight:700;"/>
+          <input type="number" min="1" ng-model="modalQty" style="width:64px; text-align:center; border:1px solid #d1d5db; border-radius:6px; padding:7px; font-size:16px; font-weight:700;"/>
           <span class="qty-btn plus" ng-click="modalQty = modalQty+1">+</span>
         </div>
-        <button class="btn-primary" style="width:100%; padding:12px;" ng-click="addToCartFromModal()">
+        <button class="btn-primary" style="width:100%; padding:14px; font-size:16px;" ng-click="addToCartFromModal()">
           Add to Cart &mdash; Rs.{{(selectedItem.price * modalQty) | number:2}}
         </button>
       </div>
@@ -223,341 +208,69 @@
 
 <!-- ===================== BILL MODAL ===================== -->
 <div class="modal-overlay" ng-show="showBillModal" ng-click="closeBillModal()">
-  <div class="modal-box" style="width:520px;" ng-click="$event.stopPropagation()">
+  <div class="modal-box" style="width:540px;" ng-click="$event.stopPropagation()">
     <div style="padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between;">
       <span style="font-weight:700; font-size:16px;">Print Bill</span>
       <button style="background:none;border:none;cursor:pointer;color:#6b7280;font-size:20px;" ng-click="closeBillModal()">&#10005;</button>
     </div>
     <div style="padding:20px;">
       <!-- Bill preview -->
-      <div id="billPreview" style="border:1px solid #e5e7eb; border-radius:8px; padding:20px; font-family:monospace; font-size:13px; background:#fafafa;">
-        <div style="text-align:center; margin-bottom:10px;">
-          <div style="font-size:18px; font-weight:700; letter-spacing:1px;">Invoice</div>
-          <div style="font-size:11px; color:#6b7280;">{{today}}</div>
-          <div style="border-top:1px dashed #d1d5db; margin:8px 0;"></div>
+      <div id="billPreview" style="border:1px solid #e5e7eb; border-radius:8px; padding:18px; font-family:'Courier New',Courier,monospace; background:#fafafa;">
+
+        <!-- Header: date left, bill no right -->
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+          <span style="font-size:13px; color:#555;">{{today}}</span>
+          <span style="font-size:13px; font-weight:700; color:#111;">{{billNo}}</span>
         </div>
-        <div style="display:flex; font-size:11px; color:#6b7280; margin-bottom:4px; padding:0 4px;">
-          <span style="flex:1;">Item</span>
-          <span style="width:40px; text-align:center;">Qty</span>
-          <span style="width:70px; text-align:right;">Price</span>
-          <span style="width:80px; text-align:right;">Total</span>
-        </div>
-        <div style="border-top:1px dashed #d1d5db; margin-bottom:6px;"></div>
-        <div ng-repeat="row in cart" style="padding:3px 4px; border-bottom:1px dotted #f0f0f0;">
-          <div style="font-size:11px; font-weight:600; color:#111827; margin-bottom:2px;">{{row.item.description | limitTo:36}}</div>
-          <div style="display:flex; font-size:12px;">
-            <span style="flex:1; color:#6b7280; font-size:10px;">{{row.item.code}}</span>
-            <span style="width:40px; text-align:center;">{{row.qty}}</span>
-            <span style="width:70px; text-align:right;">{{row.item.price}}</span>
-            <span style="width:80px; text-align:right; font-weight:600;">{{row.item.price * row.qty | number:2}}</span>
-          </div>
-        </div>
-        <div style="border-top:1px dashed #d1d5db; margin:8px 0;"></div>
-        <div style="display:flex; justify-content:space-between; font-weight:700; font-size:14px; padding:0 4px;">
+
+        <!-- Title -->
+        <div style="text-align:center; font-size:22px; font-weight:700; letter-spacing:3px; margin:4px 0 6px;">INVOICE</div>
+        <div style="border-top:2px dashed #555; margin:8px 0;"></div>
+
+        <!-- Items table: item name full-width, number cols aligned -->
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <colgroup>
+            <col style="width:60px;">
+            <col style="width:82px;">
+            <col style="width:32px;">
+            <col style="width:70px;">
+          </colgroup>
+          <thead>
+            <tr style="color:#555; border-bottom:1px dashed #aaa;">
+              <th style="text-align:left; padding:3px 4px 5px; font-weight:600;">Item</th>
+              <th style="text-align:right; padding:3px 4px 5px; font-weight:600; line-height:1.3;">Price</th>
+              <th style="text-align:center; padding:3px 4px 5px; font-weight:600;">Qty</th>
+              <th style="text-align:right; padding:3px 0 5px 4px; font-weight:600;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat-start="row in cart">
+              <td colspan="4" style="padding:6px 0 2px; font-size:13px; font-weight:700; word-break:break-word; line-height:1.4;">{{row.item.description}}</td>
+            </tr>
+            <tr ng-repeat-end style="border-bottom:1px dotted #e0e0e0;">
+              <td style="text-align:right; padding:2px 4px 6px; font-size:13px; color:#999; text-decoration:line-through; white-space:nowrap;">{{row.item.mrp | number:2}}</td>
+              <td style="text-align:right; padding:2px 4px 6px; font-size:13px; white-space:nowrap;">{{row.item.price | number:2}}</td>
+              <td style="text-align:center; padding:2px 4px 6px; font-size:13px; font-weight:700;">{{row.qty}}</td>
+              <td style="text-align:right; padding:2px 0 6px 4px; font-size:13px; font-weight:700; white-space:nowrap;">{{row.item.price * row.qty | number:2}}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Total -->
+        <div style="border-top:2px dashed #555; margin:8px 0;"></div>
+        <div style="display:flex; justify-content:space-between; font-size:19px; font-weight:700; padding:0 2px;">
           <span>TOTAL</span>
           <span>Rs.{{cartTotal() | number:2}}</span>
         </div>
-        <div style="border-top:1px dashed #d1d5db; margin:10px 0 4px;"></div>
-        <div style="text-align:center; font-size:10px; color:#9ca3af;">Thank you for your purchase!</div>
+        <div style="border-top:1px dashed #aaa; margin:10px 0 6px;"></div>
+        <div style="text-align:center; font-size:12px; color:#888;">Thank you for your purchase!</div>
       </div>
+
       <div style="display:flex; gap:10px; margin-top:16px;">
         <button class="btn-secondary" style="flex:1;" ng-click="closeBillModal()">Cancel</button>
         <button class="btn-primary" style="flex:2;" ng-click="printBill()">&#128438; Print</button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- ===================== ITEM MANAGE PAGE ===================== -->
-<div ng-show="page==2" style="height:calc(100vh - 52px); display:flex; flex-direction:column;">
-
-  <!-- Sub tabs -->
-  <div style="background:#fff; border-bottom:1px solid #e5e7eb; display:flex; padding:0 20px;">
-    <div class="sub-tab" ng-class="{active: manageTab==1}" ng-click="manageTab=1">Item List</div>
-    <div class="sub-tab" ng-class="{active: manageTab==2}" ng-click="manageTab=2; openAddItem()">Add Item</div>
-    <div class="sub-tab" ng-class="{active: manageTab==3}" ng-click="manageTab=3">Barcode Update</div>
-  </div>
-
-  <!-- ITEM LIST TAB -->
-  <div ng-show="manageTab==1" style="flex:1; padding:16px; overflow:hidden; display:flex; flex-direction:column;">
-    <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center;">
-      <input class="input-field" style="width:320px;" type="text" placeholder="Search items..." ng-model="manageSearch"/>
-      <select class="input-field" style="width:140px;" ng-model="manageCatFilter">
-        <option value="">All Categories</option>
-        <option value="WB">Water Bottles</option>
-        <option value="LB">Lunch Boxes</option>
-      </select>
-      <button class="btn-primary" style="margin-left:auto;" ng-click="manageTab=2; openAddItem()">+ Add New Item</button>
-    </div>
-    <div style="flex:1; overflow-y:auto;" class="scrollbar-hide">
-      <table class="manage-table">
-        <thead>
-          <tr>
-            <th style="width:40px;">#</th>
-            <th>Code</th>
-            <th style="width:50px;">Image</th>
-            <th>Description</th>
-            <th>Category</th>
-            <th>MRP (Rs.)</th>
-            <th>Price (Rs.)</th>
-            <th style="width:120px;">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr ng-repeat="item in items | filter:manageFilter() | orderBy:'code'" ng-if="items.length > 0">
-            <td style="color:#9ca3af;">{{$index+1}}</td>
-            <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:4px;">{{item.code}}</span></td>
-            <td>
-              <img ng-src="./Items_img/{{item.code}}.png" style="width:36px;height:36px;object-fit:contain;background:#f3f4f6;border-radius:4px;"
-                   onerror="this.style.opacity='.2'"/>
-            </td>
-            <td>{{item.description}}</td>
-            <td>
-              <span class="badge" ng-class="{'badge-wb': item.category=='WB', 'badge-lb': item.category=='LB', 'badge-other': item.category!='WB' && item.category!='LB'}">{{item.category}}</span>
-            </td>
-            <td style="text-align:right; color:#9ca3af;">{{item.mrp}}</td>
-            <td style="text-align:right; font-weight:700; color:#2563eb;">{{item.price}}</td>
-            <td>
-              <button style="background:#2563eb;color:#fff;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;margin-right:4px;" ng-click="editItem(item)">Edit</button>
-              <button style="background:#dc2626;color:#fff;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;" ng-click="deleteItem(item)">Del</button>
-            </td>
-          </tr>
-          <tr ng-if="items.length == 0">
-            <td colspan="8" class="no-results">No items in database</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="padding:8px 0; font-size:12px; color:#9ca3af;">{{(items | filter:manageFilter()).length}} items</div>
-  </div>
-
-  <!-- ADD / EDIT ITEM TAB -->
-  <div ng-show="manageTab==2" style="flex:1; padding:20px; overflow-y:auto;">
-    <div style="max-width:600px; background:#fff; border-radius:12px; padding:24px; border:1px solid #e5e7eb;">
-      <h2 style="font-size:17px; font-weight:700; color:#111827; margin-bottom:20px;">{{editMode ? 'Edit Item' : 'Add New Item'}}</h2>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-        <div>
-          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Item Code *</label>
-          <input class="input-field" type="text" ng-model="formItem.code" placeholder="e.g. WF9000103" ng-disabled="editMode"/>
-        </div>
-        <div>
-          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Category *</label>
-          <select class="input-field" ng-model="formItem.category">
-            <option value="">Select category</option>
-            <option value="WB">WB - Water Bottle</option>
-            <option value="LB">LB - Lunch Box</option>
-          </select>
-        </div>
-        <div style="grid-column:span 2;">
-          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Description *</label>
-          <input class="input-field" type="text" ng-model="formItem.description" placeholder="Item description"/>
-        </div>
-        <div>
-          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">MRP (Rs.)</label>
-          <input class="input-field" type="number" ng-model="formItem.mrp" placeholder="0.00" min="0"/>
-        </div>
-        <div>
-          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Selling Price (Rs.) *</label>
-          <input class="input-field" type="number" ng-model="formItem.price" placeholder="0.00" min="0"/>
-        </div>
-
-        <!-- Image upload row -->
-        <div style="grid-column:span 2;">
-          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Product Image</label>
-          <div style="display:flex; gap:16px; align-items:flex-start;">
-
-            <!-- Preview box -->
-            <div style="width:110px; height:110px; border:2px dashed #d1d5db; border-radius:10px; background:#f9fafb; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; position:relative;">
-              <!-- New image preview -->
-              <img ng-if="imgPreview" ng-src="{{imgPreview}}" style="width:100%;height:100%;object-fit:contain;"/>
-              <!-- Existing image (edit mode, no new file selected) -->
-              <img ng-if="!imgPreview && editMode && formItem.code" ng-src="./Items_img/{{formItem.code}}.png"
-                   style="width:100%;height:100%;object-fit:contain;"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"/>
-              <!-- Placeholder -->
-              <div ng-if="!imgPreview" style="display:flex; flex-direction:column; align-items:center; color:#9ca3af; font-size:11px; text-align:center; padding:8px;">
-                <span style="font-size:28px; line-height:1;">&#128247;</span>
-                <span style="margin-top:4px;">No Image</span>
-              </div>
-            </div>
-
-            <!-- Upload controls -->
-            <div style="flex:1;">
-              <!-- Hidden file input -->
-              <input type="file" id="imgFileInput" accept="image/*" style="display:none;"
-                     onchange="window._aPosImg(this)"/>
-              <button type="button" class="btn-secondary" style="padding:8px 16px; font-size:13px;"
-                      onclick="document.getElementById('imgFileInput').click()">
-                &#128247; Choose Image
-              </button>
-              <div ng-if="imgFile" style="margin-top:8px; font-size:12px; color:#374151; display:flex; align-items:center; gap:8px;">
-                <span style="color:#16a34a;">&#10003;</span>
-                <span>{{imgFile.name}}</span>
-                <span style="cursor:pointer; color:#dc2626; font-weight:700;" ng-click="clearImage()">&#10005;</span>
-              </div>
-              <div ng-if="!imgFile && editMode" style="margin-top:8px; font-size:12px; color:#6b7280;">
-                Current image kept if no new file chosen.
-              </div>
-              <div style="margin-top:8px; font-size:11px; color:#9ca3af;">Supported: PNG, JPG, GIF, WEBP</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div ng-show="formError" style="margin-top:12px; padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; font-size:13px; color:#dc2626;">
-        {{formError}}
-      </div>
-      <div style="display:flex; gap:10px; margin-top:20px;">
-        <button class="btn-secondary" ng-click="cancelForm()">Cancel</button>
-        <button class="btn-primary" ng-click="saveItem()">{{editMode ? 'Update Item' : 'Add Item'}}</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- BARCODE UPDATE TAB -->
-  <div ng-show="manageTab==3" style="flex:1; padding:20px; overflow-y:auto;">
-    <div style="max-width:560px; background:#fff; border-radius:12px; padding:24px; border:1px solid #e5e7eb;">
-      <h2 style="font-size:17px; font-weight:700; color:#111827; margin-bottom:6px;">Barcode Update</h2>
-      <p style="font-size:13px; color:#6b7280; margin-bottom:20px;">Scan a barcode to link it to an item code in the system.</p>
-      <div style="margin-bottom:14px;">
-        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Barcode</label>
-        <input class="input-field" type="text" ng-model="barcodeForm.barcode" placeholder="Scan or type barcode..." id="barcodeUpdateInput"/>
-      </div>
-      <div style="margin-bottom:14px;">
-        <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Item Code</label>
-        <input class="input-field" type="text" ng-model="barcodeForm.code" placeholder="Item code e.g. WF9000103" ng-change="lookupBarcodeItem()"/>
-        <div ng-show="barcodeForm.foundItem" style="margin-top:6px; padding:8px 12px; background:#eff6ff; border-radius:6px; font-size:13px; color:#1d4ed8;">
-          &#10003; {{barcodeForm.foundItem.description}}
-        </div>
-        <div ng-show="barcodeForm.notFound" style="margin-top:6px; font-size:12px; color:#dc2626;">Item code not found</div>
-      </div>
-      <button class="btn-primary" ng-click="saveBarcode()" ng-disabled="!barcodeForm.barcode || !barcodeForm.foundItem">Save Barcode Mapping</button>
-      <!-- Existing mappings -->
-      <div ng-show="barcodes.length > 0" style="margin-top:24px;">
-        <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Existing Barcode Mappings</div>
-        <table class="manage-table">
-          <thead>
-            <tr><th>Barcode</th><th>Item Code</th><th>Description</th><th></th></tr>
-          </thead>
-          <tbody>
-            <tr ng-repeat="b in barcodes">
-              <td style="font-family:monospace;">{{b.barcode}}</td>
-              <td style="font-family:monospace; font-size:12px;">{{b.code}}</td>
-              <td style="font-size:12px;">{{b.description}}</td>
-              <td><button style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;" ng-click="deleteBarcode(b)">Remove</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===================== REPORT PAGE ===================== -->
-<div ng-show="page==3" style="height:calc(100vh - 52px); display:flex; flex-direction:column; overflow:hidden;">
-
-  <!-- Filter bar -->
-  <div style="background:#fff; border-bottom:1px solid #e5e7eb; padding:12px 20px; display:flex; align-items:center; gap:12px; flex-shrink:0;">
-    <span style="font-weight:700; font-size:14px; color:#374151;">Date Range:</span>
-    <input type="date" ng-model="reportFrom" class="input-field" style="width:160px;"/>
-    <span style="color:#6b7280; font-size:14px;">to</span>
-    <input type="date" ng-model="reportTo" class="input-field" style="width:160px;"/>
-    <button class="btn-primary" ng-click="loadBills()" style="padding:8px 18px;">&#128269; Search</button>
-    <button class="btn-secondary" ng-click="setToday()" style="padding:8px 14px;">Today</button>
-    <!-- <button class="btn-secondary" ng-click="setThisMonth()" style="padding:8px 14px;">This Month</button> -->
-    <!-- Summary chips -->
-    <div style="margin-left:auto; display:flex; gap:16px; align-items:center;" ng-show="bills.length > 0">
-      <div style="text-align:center;">
-        <div style="font-size:11px; color:#6b7280;">Bills</div>
-        <div style="font-size:18px; font-weight:700; color:#2563eb;">{{bills.length}}</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:11px; color:#6b7280;">Items Sold</div>
-        <div style="font-size:18px; font-weight:700; color:#2563eb;">{{reportTotalItems()}}</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:11px; color:#6b7280;">Revenue</div>
-        <div style="font-size:18px; font-weight:700; color:#16a34a;">Rs.{{reportTotalRevenue() | number:2}}</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Table -->
-  <div style="flex:1; overflow-y:auto; padding:16px;" class="scrollbar-hide">
-
-    <!-- Empty state -->
-    <div ng-if="bills.length == 0 && !reportLoading" class="no-results">
-      <div style="font-size:48px;">&#128202;</div>
-      <div style="margin-top:8px;">No bills found for selected date range</div>
-    </div>
-    <div ng-if="reportLoading" class="no-results">
-      <div style="font-size:14px; color:#6b7280;">Loading...</div>
-    </div>
-
-    <!-- Bills table -->
-    <table class="manage-table" ng-if="bills.length > 0">
-      <thead>
-        <tr>
-          <th style="width:40px;">#</th>
-          <th>Bill No</th>
-          <th>Date &amp; Time</th>
-          <th style="text-align:center;">Items</th>
-          <th style="text-align:right;">Total (Rs.)</th>
-          <th style="width:80px; text-align:center;">Detail</th>
-        </tr>
-      </thead>
-      <tbody ng-repeat="bill in bills">
-        <!-- Bill summary row -->
-        <tr style="cursor:pointer;" ng-click="toggleBill(bill)" ng-class="{'bg-blue-50': bill.expanded}" ng-style="bill.expanded ? {'background':'#eff6ff'} : {}">
-          <td style="color:#9ca3af;">{{$index+1}}</td>
-          <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 7px; border-radius:4px; font-weight:600;">{{bill.bill_no}}</span></td>
-          <td style="font-size:13px;">{{bill.created_at | date:'dd MMM yyyy, HH:mm'}}</td>
-          <td style="text-align:center;">
-            <span style="background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600;">{{bill.item_count}}</span>
-          </td>
-          <td style="text-align:right; font-weight:700; color:#2563eb; font-size:14px;">{{bill.total | number:2}}</td>
-          <td style="text-align:center;">
-            <span style="font-size:18px; cursor:pointer; color:#2563eb;" ng-bind="bill.expanded ? '&#9650;' : '&#9660;'"></span>
-          </td>
-        </tr>
-        <!-- Expanded detail row -->
-        <tr ng-if="bill.expanded">
-          <td colspan="6" style="padding:0; background:#f8faff;">
-            <div style="padding:12px 24px 16px;">
-              <!-- Loading spinner for items -->
-              <div ng-if="!bill.items" style="padding:12px; color:#6b7280; font-size:13px;">Loading items...</div>
-              <!-- Items sub-table -->
-              <table ng-if="bill.items" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.08);">
-                <thead>
-                  <tr style="background:#f1f5fd;">
-                    <th style="padding:8px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Code</th>
-                    <th style="padding:8px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Description</th>
-                    <th style="padding:8px 12px; text-align:center; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Qty</th>
-                    <th style="padding:8px 12px; text-align:right; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Unit Price</th>
-                    <th style="padding:8px 12px; text-align:right; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr ng-repeat="itm in bill.items" ng-style="{'background': $even ? '#fff' : '#fafbff'}">
-                    <td style="padding:7px 12px; font-family:monospace; font-size:11px; color:#6b7280;">{{itm.prod_code}}</td>
-                    <td style="padding:7px 12px; color:#111827;">{{itm.description}}</td>
-                    <td style="padding:7px 12px; text-align:center; font-weight:600;">{{itm.qty}}</td>
-                    <td style="padding:7px 12px; text-align:right; color:#6b7280;">{{itm.unit_price | number:2}}</td>
-                    <td style="padding:7px 12px; text-align:right; font-weight:700; color:#2563eb;">{{itm.total_price | number:2}}</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr style="background:#f1f5fd; border-top:2px solid #e5e7eb;">
-                    <td colspan="4" style="padding:8px 12px; font-weight:700; color:#374151; text-align:right;">Bill Total</td>
-                    <td style="padding:8px 12px; font-weight:700; color:#2563eb; text-align:right;">Rs.{{bill.total | number:2}}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
   </div>
 </div>
 
@@ -577,9 +290,6 @@
 <div ng-show="toast.show" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:12px 24px; border-radius:8px; font-size:14px; z-index:300; box-shadow:0 8px 24px rgba(0,0,0,.3);">
   {{toast.message}}
 </div>
-
-<!-- PRINT AREA -->
-<div class="print-area" id="printArea"></div>
 
 </body>
 </html>

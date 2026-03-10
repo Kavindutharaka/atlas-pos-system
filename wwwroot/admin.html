@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlas Admin</title>
+  <script src="./sup/angular.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="./admin-app.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { width: 1920px; height: 100vh; overflow: hidden; background: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+    .nav-tab { padding: 10px 24px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 500; font-size: 14px; color: #6b7280; transition: all .2s; }
+    .nav-tab:hover { color: #111827; background: #f9fafb; }
+    .nav-tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #fff; }
+    .sub-tab { padding: 8px 18px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 500; color: #6b7280; }
+    .sub-tab:hover { color: #374151; }
+    .sub-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .btn-primary { background: #2563eb; color: #fff; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger { background: #dc2626; color: #fff; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; border: none; }
+    .btn-secondary { background: #f3f4f6; color: #374151; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; border: 1px solid #d1d5db; transition: all .15s; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .input-field { border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 14px; font-size: 14px; width: 100%; outline: none; transition: border .15s; background: #fff; }
+    .input-field:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-wb { background: #dbeafe; color: #1d4ed8; }
+    .badge-lb { background: #d1fae5; color: #065f46; }
+    .badge-other { background: #f3f4f6; color: #374151; }
+    .manage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .manage-table th { background: #f9fafb; padding: 10px 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; }
+    .manage-table td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+    .manage-table tr:hover td { background: #f9fafb; }
+    .no-results { text-align: center; padding: 60px; color: #9ca3af; }
+    .page-body { height: calc(100vh - 52px); display: flex; flex-direction: column; overflow: hidden; }
+    .scrollbar-hide::-webkit-scrollbar { width: 4px; }
+    .scrollbar-hide::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  </style>
+</head>
+<body ng-app="APSAdmin" ng-cloak ng-controller="AdminCtrl">
+
+<!-- ===================== LOGIN PAGE ===================== -->
+<div ng-if="!isLoggedIn" style="height:100vh; display:flex; align-items:center; justify-content:center; background:#f3f4f6;">
+  <div style="background:#fff; border-radius:16px; padding:40px 48px; box-shadow:0 8px 32px rgba(0,0,0,.1); width:400px;">
+    <div style="text-align:center; margin-bottom:28px;">
+      <div style="font-size:28px; font-weight:800; color:#2563eb; letter-spacing:-1px;">ATLAS</div>
+      <div style="font-size:14px; color:#6b7280; margin-top:4px;">Admin Panel</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Username</label>
+      <input class="input-field" id="loginUserInput" type="text" placeholder="Username" autocomplete="off" ng-keyup="$event.keyCode==13 && doLogin()"/>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Password</label>
+      <input class="input-field" id="loginPassInput" type="password" placeholder="Password" autocomplete="new-password" ng-keyup="$event.keyCode==13 && doLogin()"/>
+    </div>
+    <div ng-show="loginError" style="padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; font-size:13px; color:#dc2626; margin-bottom:14px;">
+      {{loginError}}
+    </div>
+    <button class="btn-primary" style="width:100%; padding:12px; font-size:15px;" ng-click="doLogin()">Login</button>
+    <div style="margin-top:16px; text-align:center;">
+      <a href="/" style="font-size:13px; color:#6b7280; text-decoration:none;">&#8592; Back to POS</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ADMIN APP ===================== -->
+<div ng-if="isLoggedIn">
+
+  <!-- TOP NAV -->
+  <div style="background:#fff; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; height:52px; padding:0 16px;">
+    <div style="font-weight:800; font-size:17px; color:#2563eb; margin-right:24px; letter-spacing:-.5px;">ATLAS</div>
+    <div class="nav-tab" ng-class="{active: adminPage==1}" ng-click="adminPage=1">&#128230; Item Manage</div>
+    <div class="nav-tab" ng-class="{active: adminPage==2}" ng-click="adminPage=2">&#128202; Report</div>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:16px;">
+      <span style="font-size:12px; color:#9ca3af;">{{today}}</span>
+      <a href="/" style="font-size:13px; color:#6b7280; text-decoration:none; padding:6px 14px; border:1px solid #d1d5db; border-radius:6px;">&#128722; POS</a>
+      <button class="btn-secondary" style="padding:6px 14px; font-size:13px;" ng-click="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- ==================== ITEM MANAGE PAGE ==================== -->
+  <div ng-show="adminPage==1" class="page-body">
+
+    <!-- Sub tabs -->
+    <div style="background:#fff; border-bottom:1px solid #e5e7eb; display:flex; padding:0 20px;">
+      <div class="sub-tab" ng-class="{active: manageTab==1}" ng-click="manageTab=1">Item List</div>
+      <div class="sub-tab" ng-class="{active: manageTab==2}" ng-click="manageTab=2; openAddItem()">Add Item</div>
+      <div class="sub-tab" ng-class="{active: manageTab==3}" ng-click="manageTab=3">Barcode Update</div>
+      <div class="sub-tab" ng-class="{active: manageTab==4}" ng-click="manageTab=4">Inventory</div>
+    </div>
+
+    <!-- ITEM LIST TAB -->
+    <div ng-show="manageTab==1" style="flex:1; padding:16px; overflow:hidden; display:flex; flex-direction:column;">
+      <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center;">
+        <input class="input-field" style="width:320px;" type="text" placeholder="Search items..." ng-model="manageSearch"/>
+        <select class="input-field" style="width:150px;" ng-model="manageCatFilter">
+          <option value="">All Categories</option>
+          <option value="WB">Water Bottles</option>
+          <option value="LB">Lunch Boxes</option>
+        </select>
+        <button class="btn-primary" style="margin-left:auto;" ng-click="manageTab=2; openAddItem()">+ Add New Item</button>
+      </div>
+      <div style="flex:1; overflow-y:auto;" class="scrollbar-hide">
+        <table class="manage-table">
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Code</th>
+              <th style="width:50px;">Image</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>MRP (Rs.)</th>
+              <th>Price (Rs.)</th>
+              <th style="text-align:center;">Stock</th>
+              <th style="width:120px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="item in items | filter:manageFilter() | orderBy:'code'" ng-if="items.length > 0">
+              <td style="color:#9ca3af;">{{$index+1}}</td>
+              <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:4px;">{{item.code}}</span></td>
+              <td>
+                <img ng-src="./Items_img/{{item.code}}.png" style="width:36px;height:36px;object-fit:contain;background:#f3f4f6;border-radius:4px;"
+                     onerror="this.style.opacity='.2'"/>
+              </td>
+              <td>{{item.description}}</td>
+              <td>
+                <span class="badge" ng-class="{'badge-wb': item.category=='WB', 'badge-lb': item.category=='LB', 'badge-other': item.category!='WB' && item.category!='LB'}">{{item.category}}</span>
+              </td>
+              <td style="text-align:right; color:#9ca3af;">{{item.mrp}}</td>
+              <td style="text-align:right; font-weight:700; color:#2563eb;">{{item.price}}</td>
+              <td style="text-align:center;">
+                <span ng-if="item.stock === null || item.stock === undefined" style="color:#d1d5db; font-size:12px;">—</span>
+                <span ng-if="item.stock !== null && item.stock !== undefined && item.stock <= 0" style="color:#dc2626; font-weight:700; font-size:12px;">0</span>
+                <span ng-if="item.stock !== null && item.stock !== undefined && item.stock > 0 && item.stock <= 10" style="color:#d97706; font-weight:700; font-size:12px;">{{item.stock}}</span>
+                <span ng-if="item.stock !== null && item.stock !== undefined && item.stock > 10" style="color:#16a34a; font-weight:700; font-size:12px;">{{item.stock}}</span>
+              </td>
+              <td>
+                <button style="background:#2563eb;color:#fff;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;margin-right:4px;" ng-click="editItem(item)">Edit</button>
+                <button style="background:#dc2626;color:#fff;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px;" ng-click="deleteItem(item)">Del</button>
+              </td>
+            </tr>
+            <tr ng-if="items.length == 0">
+              <td colspan="9" class="no-results">No items in database</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:8px 0; font-size:12px; color:#9ca3af;">{{(items | filter:manageFilter()).length}} items</div>
+    </div>
+
+    <!-- ADD / EDIT ITEM TAB -->
+    <div ng-show="manageTab==2" style="flex:1; padding:20px; overflow-y:auto;">
+      <div style="max-width:600px; background:#fff; border-radius:12px; padding:24px; border:1px solid #e5e7eb;">
+        <h2 style="font-size:17px; font-weight:700; color:#111827; margin-bottom:20px;">{{editMode ? 'Edit Item' : 'Add New Item'}}</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Item Code *</label>
+            <input class="input-field" type="text" ng-model="formItem.code" placeholder="e.g. WF9000103" ng-disabled="editMode"/>
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Category *</label>
+            <select class="input-field" ng-model="formItem.category">
+              <option value="">Select category</option>
+              <option value="WB">WB - Water Bottle</option>
+              <option value="LB">LB - Lunch Box</option>
+            </select>
+          </div>
+          <div style="grid-column:span 2;">
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Description *</label>
+            <input class="input-field" type="text" ng-model="formItem.description" placeholder="Item description"/>
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">MRP (Rs.)</label>
+            <input class="input-field" type="number" ng-model="formItem.mrp" placeholder="0.00" min="0"/>
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Selling Price (Rs.) *</label>
+            <input class="input-field" type="number" ng-model="formItem.price" placeholder="0.00" min="0"/>
+          </div>
+
+          <!-- Image upload -->
+          <div style="grid-column:span 2;">
+            <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Product Image</label>
+            <div style="display:flex; gap:16px; align-items:flex-start;">
+              <div style="width:110px; height:110px; border:2px dashed #d1d5db; border-radius:10px; background:#f9fafb; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+                <img ng-if="imgPreview" ng-src="{{imgPreview}}" style="width:100%;height:100%;object-fit:contain;"/>
+                <img ng-if="!imgPreview && editMode && formItem.code" ng-src="./Items_img/{{formItem.code}}.png"
+                     style="width:100%;height:100%;object-fit:contain;"
+                     onerror="this.style.display='none'"/>
+                <div ng-if="!imgPreview" style="display:flex; flex-direction:column; align-items:center; color:#9ca3af; font-size:11px; text-align:center; padding:8px;">
+                  <span style="font-size:28px; line-height:1;">&#128247;</span>
+                  <span style="margin-top:4px;">No Image</span>
+                </div>
+              </div>
+              <div style="flex:1;">
+                <input type="file" id="adminImgInput" accept="image/*" style="display:none;"
+                       onchange="window._aAdminImg(this)"/>
+                <button type="button" class="btn-secondary" style="padding:8px 16px; font-size:13px;"
+                        onclick="document.getElementById('adminImgInput').click()">
+                  &#128247; Choose Image
+                </button>
+                <div ng-if="imgFile" style="margin-top:8px; font-size:12px; color:#374151; display:flex; align-items:center; gap:8px;">
+                  <span style="color:#16a34a;">&#10003;</span>
+                  <span>{{imgFile.name}}</span>
+                  <span style="cursor:pointer; color:#dc2626; font-weight:700;" ng-click="clearImage()">&#10005;</span>
+                </div>
+                <div ng-if="!imgFile && editMode" style="margin-top:8px; font-size:12px; color:#6b7280;">Current image kept if no new file chosen.</div>
+                <div style="margin-top:8px; font-size:11px; color:#9ca3af;">Supported: PNG, JPG, GIF, WEBP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div ng-show="formError" style="margin-top:12px; padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; font-size:13px; color:#dc2626;">
+          {{formError}}
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button class="btn-secondary" ng-click="cancelForm()">Cancel</button>
+          <button class="btn-primary" ng-click="saveItem()">{{editMode ? 'Update Item' : 'Add Item'}}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BARCODE UPDATE TAB -->
+    <div ng-show="manageTab==3" style="flex:1; padding:20px; overflow-y:auto;">
+      <div style="max-width:560px; background:#fff; border-radius:12px; padding:24px; border:1px solid #e5e7eb;">
+        <h2 style="font-size:17px; font-weight:700; color:#111827; margin-bottom:6px;">Barcode Update</h2>
+        <p style="font-size:13px; color:#6b7280; margin-bottom:20px;">Scan a barcode to link it to an item code in the system.</p>
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Barcode</label>
+          <input class="input-field" type="text" ng-model="barcodeForm.barcode" placeholder="Scan or type barcode..."/>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Item Code</label>
+          <input class="input-field" type="text" ng-model="barcodeForm.code" placeholder="Item code e.g. WF9000103" ng-change="lookupBarcodeItem()"/>
+          <div ng-show="barcodeForm.foundItem" style="margin-top:6px; padding:8px 12px; background:#eff6ff; border-radius:6px; font-size:13px; color:#1d4ed8;">
+            &#10003; {{barcodeForm.foundItem.description}}
+          </div>
+          <div ng-show="barcodeForm.notFound" style="margin-top:6px; font-size:12px; color:#dc2626;">Item code not found</div>
+        </div>
+        <button class="btn-primary" ng-click="saveBarcode()" ng-disabled="!barcodeForm.barcode || !barcodeForm.foundItem">Save Barcode Mapping</button>
+        <!-- Existing mappings -->
+        <div ng-show="barcodes.length > 0" style="margin-top:24px;">
+          <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Existing Barcode Mappings</div>
+          <table class="manage-table">
+            <thead>
+              <tr><th>Barcode</th><th>Item Code</th><th>Description</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="b in barcodes">
+                <td style="font-family:monospace;">{{b.barcode}}</td>
+                <td style="font-family:monospace; font-size:12px;">{{b.code}}</td>
+                <td style="font-size:12px;">{{b.description}}</td>
+                <td><button style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;" ng-click="deleteBarcode(b)">Remove</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY TAB -->
+    <div ng-show="manageTab==4" style="flex:1; padding:20px; overflow-y:auto; display:flex; gap:20px; flex-wrap:wrap; align-content:flex-start;">
+
+      <!-- Add Stock form -->
+      <div style="width:500px; background:#fff; border-radius:12px; padding:24px; border:1px solid #e5e7eb; height:fit-content;">
+        <h2 style="font-size:17px; font-weight:700; color:#111827; margin-bottom:6px;">Add Stock</h2>
+        <p style="font-size:13px; color:#6b7280; margin-bottom:20px;">Search and select a product, enter quantity and a note.</p>
+
+        <!-- Autocomplete product search -->
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Product</label>
+          <div style="position:relative;">
+            <input class="input-field" type="text"
+                   ng-model="stockForm.searchText"
+                   ng-change="filterStockItems()"
+                   ng-focus="stockForm.showDropdown = true"
+                   ng-blur="blurStockSearch()"
+                   placeholder="Type item name or code to search..."
+                   autocomplete="off"
+                   ng-disabled="!!stockForm.foundItem"
+                   style="padding-right:36px;"/>
+            <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:16px; pointer-events:none;">&#128269;</span>
+
+            <!-- Suggestions dropdown -->
+            <div ng-show="stockForm.showDropdown && stockForm.suggestions.length > 0"
+                 style="position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.12); z-index:50; max-height:280px; overflow-y:auto;">
+              <div ng-repeat="item in stockForm.suggestions"
+                   ng-mousedown="selectStockItem(item)"
+                   style="display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; border-bottom:1px solid #f3f4f6; transition:background .1s;"
+                   onmouseover="this.style.background='#eff6ff'"
+                   onmouseout="this.style.background=''">
+                <img ng-src="./Items_img/{{item.code}}.png"
+                     style="width:42px;height:42px;object-fit:contain;background:#f3f4f6;border-radius:6px;flex-shrink:0;"
+                     onerror="this.style.opacity='.15'"/>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:13px; font-weight:600; color:#111827; line-height:1.3;">{{item.description}}</div>
+                  <div style="font-size:11px; color:#6b7280; font-family:monospace; margin-top:2px;">{{item.code}}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected item chip -->
+          <div ng-show="stockForm.foundItem"
+               style="margin-top:8px; padding:10px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; display:flex; align-items:center; gap:10px;">
+            <img ng-src="./Items_img/{{stockForm.foundItem.code}}.png"
+                 style="width:46px;height:46px;object-fit:contain;background:#fff;border-radius:6px;flex-shrink:0;"
+                 onerror="this.style.opacity='.15'"/>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:700; color:#1d4ed8; line-height:1.3;">{{stockForm.foundItem.description}}</div>
+              <div style="font-size:11px; color:#6b7280; margin-top:2px;">
+                <span style="font-family:monospace;">{{stockForm.foundItem.code}}</span>
+                &nbsp;&middot;&nbsp; Current stock: <b style="color:#374151;">{{getStockQty(stockForm.foundItem.code)}}</b>
+              </div>
+            </div>
+            <button type="button" ng-click="clearStockItem()"
+                    style="background:none;border:none;cursor:pointer;color:#6b7280;font-size:20px;line-height:1;padding:2px;flex-shrink:0;" title="Clear">&#10005;</button>
+          </div>
+        </div>
+
+        <!-- Quantity -->
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Quantity to Add</label>
+          <input class="input-field" type="number" ng-model="stockForm.qty" placeholder="1" min="1"/>
+        </div>
+
+        <!-- Note (required, textarea) -->
+        <div style="margin-bottom:20px;">
+          <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">
+            Note <span style="color:#dc2626;">*</span>
+          </label>
+          <textarea class="input-field" ng-model="stockForm.note"
+                    placeholder="e.g. Received from warehouse on 10 Mar 2026, batch #12..."
+                    rows="3" style="resize:vertical; min-height:76px; font-family:inherit;"></textarea>
+        </div>
+
+        <div ng-show="stockForm.error" style="margin-bottom:12px; padding:8px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; font-size:13px; color:#dc2626;">
+          {{stockForm.error}}
+        </div>
+
+        <button class="btn-primary" ng-click="addStock()" ng-disabled="!stockForm.foundItem || !stockForm.qty">
+          + Add Stock
+        </button>
+      </div>
+
+      <!-- Stock levels table -->
+      <div style="flex:1; min-width:500px; background:#fff; border-radius:12px; padding:24px; border:1px solid #e5e7eb; overflow-y:auto; max-height:calc(100vh - 160px);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <h2 style="font-size:17px; font-weight:700; color:#111827;">Current Stock Levels</h2>
+          <button class="btn-secondary" style="padding:6px 14px; font-size:13px;" ng-click="reloadStock()">&#8635; Refresh</button>
+        </div>
+        <div ng-if="stockLoading" style="text-align:center; padding:20px; color:#6b7280; font-size:13px;">Loading...</div>
+        <table class="manage-table" ng-if="!stockLoading">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th style="text-align:center;">Stock Qty</th>
+              <th>Last Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="s in stockList | orderBy:'code'">
+              <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:4px;">{{s.code}}</span></td>
+              <td style="font-size:13px;">{{s.description}}</td>
+              <td>
+                <span class="badge" ng-class="{'badge-wb': s.category=='WB', 'badge-lb': s.category=='LB', 'badge-other': true}">{{s.category}}</span>
+              </td>
+              <td style="text-align:center; font-weight:700;"
+                  ng-style="s.stock === null || s.stock === undefined ? {'color':'#d1d5db'} : s.stock <= 0 ? {'color':'#dc2626'} : s.stock <= 10 ? {'color':'#d97706'} : {'color':'#16a34a'}">
+                {{s.stock !== null && s.stock !== undefined ? s.stock : '—'}}
+              </td>
+              <td style="font-size:12px; color:#9ca3af;">{{s.updated_at ? (s.updated_at | date:'dd MMM yyyy') : '—'}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- end adminPage==1 -->
+
+  <!-- ==================== REPORT PAGE ==================== -->
+  <div ng-show="adminPage==2" class="page-body">
+
+    <!-- Sub tabs -->
+    <div style="background:#fff; border-bottom:1px solid #e5e7eb; display:flex; padding:0 20px;">
+      <div class="sub-tab" ng-class="{active: reportTab==1}" ng-click="reportTab=1">Bills</div>
+      <div class="sub-tab" ng-class="{active: reportTab==2}" ng-click="reportTab=2">Items Count</div>
+      <div class="sub-tab" ng-class="{active: reportTab==3}" ng-click="reportTab=3">Stock Report</div>
+    </div>
+
+    <!-- BILLS TAB -->
+    <div ng-show="reportTab==1" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <!-- Filter bar -->
+      <div style="background:#fff; border-bottom:1px solid #e5e7eb; padding:12px 20px; display:flex; align-items:center; gap:12px; flex-shrink:0;">
+        <span style="font-weight:700; font-size:14px; color:#374151;">Date Range:</span>
+        <input type="date" ng-model="reportFrom" class="input-field" style="width:160px;"/>
+        <span style="color:#6b7280; font-size:14px;">to</span>
+        <input type="date" ng-model="reportTo" class="input-field" style="width:160px;"/>
+        <button class="btn-primary" ng-click="loadBills()" style="padding:8px 18px;">&#128269; Search</button>
+        <button class="btn-secondary" ng-click="setToday()" style="padding:8px 14px;">Today</button>
+        <button class="btn-secondary" ng-click="setThisMonth()" style="padding:8px 14px;">This Month</button>
+        <!-- Summary chips -->
+        <div style="margin-left:auto; display:flex; gap:16px; align-items:center;" ng-show="bills.length > 0">
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Bills</div>
+            <div style="font-size:18px; font-weight:700; color:#2563eb;">{{bills.length}}</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Items Sold</div>
+            <div style="font-size:18px; font-weight:700; color:#2563eb;">{{reportTotalItems()}}</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Revenue</div>
+            <div style="font-size:18px; font-weight:700; color:#16a34a;">Rs.{{reportTotalRevenue() | number:2}}</div>
+          </div>
+        </div>
+      </div>
+      <!-- Table -->
+      <div style="flex:1; overflow-y:auto; padding:16px;" class="scrollbar-hide">
+        <div ng-if="bills.length == 0 && !reportLoading" class="no-results">
+          <div style="font-size:48px;">&#128202;</div>
+          <div style="margin-top:8px;">No bills found for selected date range</div>
+        </div>
+        <div ng-if="reportLoading" class="no-results"><div style="font-size:14px; color:#6b7280;">Loading...</div></div>
+        <table class="manage-table" ng-if="bills.length > 0">
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Bill No</th>
+              <th>Date &amp; Time</th>
+              <th style="text-align:center;">Items</th>
+              <th style="text-align:right;">Total (Rs.)</th>
+              <th style="width:80px; text-align:center;">Detail</th>
+            </tr>
+          </thead>
+          <tbody ng-repeat="bill in bills">
+            <tr style="cursor:pointer;" ng-click="toggleBill(bill)" ng-style="bill.expanded ? {'background':'#eff6ff'} : {}">
+              <td style="color:#9ca3af;">{{$index+1}}</td>
+              <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 7px; border-radius:4px; font-weight:600;">{{bill.bill_no}}</span></td>
+              <td style="font-size:13px;">{{bill.created_at | date:'dd MMM yyyy, HH:mm'}}</td>
+              <td style="text-align:center;">
+                <span style="background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600;">{{bill.item_count}}</span>
+              </td>
+              <td style="text-align:right; font-weight:700; color:#2563eb; font-size:14px;">{{bill.total | number:2}}</td>
+              <td style="text-align:center;">
+                <span style="font-size:18px; cursor:pointer; color:#2563eb;" ng-bind="bill.expanded ? '&#9650;' : '&#9660;'"></span>
+              </td>
+            </tr>
+            <tr ng-if="bill.expanded">
+              <td colspan="6" style="padding:0; background:#f8faff;">
+                <div style="padding:12px 24px 16px;">
+                  <div ng-if="!bill.items" style="padding:12px; color:#6b7280; font-size:13px;">Loading items...</div>
+                  <table ng-if="bill.items" style="width:100%; border-collapse:collapse; font-size:12px; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                    <thead>
+                      <tr style="background:#f1f5fd;">
+                        <th style="padding:8px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Description</th>
+                        <th style="padding:8px 12px; text-align:center; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Qty</th>
+                        <th style="padding:8px 12px; text-align:right; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Unit Price</th>
+                        <th style="padding:8px 12px; text-align:right; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr ng-repeat="itm in bill.items" ng-style="{'background': $even ? '#fff' : '#fafbff'}">
+                        <td style="padding:7px 12px; color:#111827;">{{itm.description}}</td>
+                        <td style="padding:7px 12px; text-align:center; font-weight:600;">{{itm.qty}}</td>
+                        <td style="padding:7px 12px; text-align:right; color:#6b7280;">{{itm.unit_price | number:2}}</td>
+                        <td style="padding:7px 12px; text-align:right; font-weight:700; color:#2563eb;">{{itm.total_price | number:2}}</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr style="background:#f1f5fd; border-top:2px solid #e5e7eb;">
+                        <td colspan="3" style="padding:8px 12px; font-weight:700; color:#374151; text-align:right;">Bill Total</td>
+                        <td style="padding:8px 12px; font-weight:700; color:#2563eb; text-align:right;">Rs.{{bill.total | number:2}}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ITEMS COUNT TAB -->
+    <div ng-show="reportTab==2" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <!-- Filter bar -->
+      <div style="background:#fff; border-bottom:1px solid #e5e7eb; padding:12px 20px; display:flex; align-items:center; gap:12px; flex-shrink:0;">
+        <span style="font-weight:700; font-size:14px; color:#374151;">Date Range:</span>
+        <input type="date" ng-model="icFrom" class="input-field" style="width:160px;"/>
+        <span style="color:#6b7280; font-size:14px;">to</span>
+        <input type="date" ng-model="icTo" class="input-field" style="width:160px;"/>
+        <button class="btn-primary" ng-click="loadItemsCount()" style="padding:8px 18px;">&#128269; Search</button>
+        <button class="btn-secondary" ng-click="setIcToday()" style="padding:8px 14px;">Today</button>
+        <button class="btn-secondary" ng-click="setIcThisMonth()" style="padding:8px 14px;">This Month</button>
+        <div style="margin-left:auto; display:flex; gap:16px; align-items:center;" ng-show="itemsCounts.length > 0">
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Products</div>
+            <div style="font-size:18px; font-weight:700; color:#2563eb;">{{itemsCounts.length}}</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Total Units Sold</div>
+            <div style="font-size:18px; font-weight:700; color:#2563eb;">{{icTotalQty()}}</div>
+          </div>
+        </div>
+      </div>
+      <!-- Table -->
+      <div style="flex:1; overflow-y:auto; padding:16px;" class="scrollbar-hide">
+        <div ng-if="itemsCounts.length == 0 && !icLoading" class="no-results">
+          <div style="font-size:48px;">&#128202;</div>
+          <div style="margin-top:8px;">No sales data found. Click Search to load.</div>
+        </div>
+        <div ng-if="icLoading" class="no-results"><div style="font-size:14px; color:#6b7280;">Loading...</div></div>
+        <table class="manage-table" ng-if="itemsCounts.length > 0">
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Product Code</th>
+              <th>Description</th>
+              <th style="text-align:center; width:120px;">Qty Sold</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="ic in itemsCounts">
+              <td style="color:#9ca3af;">{{$index+1}}</td>
+              <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:4px;">{{ic.prod_code}}</span></td>
+              <td>{{ic.description}}</td>
+              <td style="text-align:center; font-weight:700; font-size:16px; color:#2563eb;">{{ic.q}}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:#f9fafb; border-top:2px solid #e5e7eb;">
+              <td colspan="3" style="padding:10px 12px; font-weight:700; text-align:right; color:#374151;">Total Units Sold</td>
+              <td style="padding:10px 12px; font-weight:700; text-align:center; font-size:16px; color:#2563eb;">{{icTotalQty()}}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- STOCK REPORT TAB -->
+    <div ng-show="reportTab==3" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="background:#fff; border-bottom:1px solid #e5e7eb; padding:12px 20px; display:flex; align-items:center; gap:12px; flex-shrink:0;">
+        <span style="font-weight:700; font-size:14px; color:#374151;">Current Stock Levels</span>
+        <button class="btn-secondary" ng-click="reloadStock()" style="padding:8px 14px;">&#8635; Refresh</button>
+        <div style="margin-left:auto; display:flex; gap:16px; align-items:center;" ng-show="stockList.length > 0">
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Out of Stock</div>
+            <div style="font-size:18px; font-weight:700; color:#dc2626;">{{countOutOfStock()}}</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Low Stock (≤10)</div>
+            <div style="font-size:18px; font-weight:700; color:#d97706;">{{countLowStock()}}</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:11px; color:#6b7280;">Tracked Items</div>
+            <div style="font-size:18px; font-weight:700; color:#2563eb;">{{countTracked()}}</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:16px;" class="scrollbar-hide">
+        <div ng-if="stockLoading" class="no-results"><div style="font-size:14px; color:#6b7280;">Loading...</div></div>
+        <div ng-if="!stockLoading && stockList.length == 0" class="no-results">
+          <div style="font-size:48px;">&#128230;</div>
+          <div style="margin-top:8px;">No stock data. Add stock via Item Manage → Inventory tab.</div>
+        </div>
+        <table class="manage-table" ng-if="stockList.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Code</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th style="text-align:center;">Stock Qty</th>
+              <th>Status</th>
+              <th>Last Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="s in stockList | orderBy:'code'">
+              <td style="color:#9ca3af;">{{$index+1}}</td>
+              <td><span style="font-family:monospace; font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:4px;">{{s.code}}</span></td>
+              <td>{{s.description}}</td>
+              <td>
+                <span class="badge" ng-class="{'badge-wb': s.category=='WB', 'badge-lb': s.category=='LB', 'badge-other': true}">{{s.category}}</span>
+              </td>
+              <td style="text-align:center; font-weight:700;"
+                  ng-style="s.stock === null || s.stock === undefined ? {'color':'#d1d5db'} : s.stock <= 0 ? {'color':'#dc2626'} : s.stock <= 10 ? {'color':'#d97706'} : {'color':'#16a34a'}">
+                {{s.stock !== null && s.stock !== undefined ? s.stock : '—'}}
+              </td>
+              <td>
+                <span ng-if="s.stock === null || s.stock === undefined" style="font-size:11px; color:#9ca3af;">Not tracked</span>
+                <span ng-if="s.stock !== null && s.stock !== undefined && s.stock <= 0" style="font-size:11px; font-weight:700; color:#dc2626; background:#fee2e2; padding:2px 8px; border-radius:4px;">Out of Stock</span>
+                <span ng-if="s.stock !== null && s.stock !== undefined && s.stock > 0 && s.stock <= 10" style="font-size:11px; font-weight:700; color:#b45309; background:#fef3c7; padding:2px 8px; border-radius:4px;">Low Stock</span>
+                <span ng-if="s.stock !== null && s.stock !== undefined && s.stock > 10" style="font-size:11px; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:4px;">In Stock</span>
+              </td>
+              <td style="font-size:12px; color:#9ca3af;">{{s.updated_at ? (s.updated_at | date:'dd MMM yyyy HH:mm') : '—'}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- end adminPage==2 -->
+
+</div><!-- end isLoggedIn -->
+
+<!-- ===================== CONFIRM DIALOG ===================== -->
+<div class="modal-overlay" ng-show="confirmData.show" style="z-index:200;">
+  <div style="background:#fff; border-radius:12px; padding:24px; width:360px; box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:8px;">{{confirmData.title}}</div>
+    <div style="font-size:14px; color:#6b7280; margin-bottom:20px;">{{confirmData.message}}</div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn-secondary" ng-click="confirmData.show=false">Cancel</button>
+      <button class="btn-danger" ng-click="confirmData.onConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div ng-show="toast.show" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:12px 24px; border-radius:8px; font-size:14px; z-index:300; box-shadow:0 8px 24px rgba(0,0,0,.3);">
+  {{toast.message}}
+</div>
+
+</body>
+</html>

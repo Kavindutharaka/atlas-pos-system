@@ -1,2 +1,4 @@
 /bin
 /obj
+pub/appsettings.Development.json
+pub/*
